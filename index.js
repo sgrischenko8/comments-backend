@@ -67,8 +67,14 @@ app.post("/comments", async (req, res) => {
   }
 });
 
+// Отримати коментарі з можливістю сортування та пагінації
 app.get("/comments", async (req, res) => {
-  const { sortBy = "createdAt", sortOrder = "DESC" } = req.query;
+  const {
+    sortBy = "createdAt",
+    sortOrder = "DESC",
+    page = 1,
+    limit = 3,
+  } = req.query; // За замовчуванням сортування по createdAt в порядку DESC (LIFO)
 
   // Перевірка на допустимі поля сортування
   const allowedSortFields = ["userName", "email", "createdAt"];
@@ -82,8 +88,13 @@ app.get("/comments", async (req, res) => {
     return res.status(400).json({ error: "Invalid sort order" });
   }
 
+  // Параметри пагінації
+  const pageNumber = parseInt(page);
+  const limitNumber = parseInt(limit);
+  const offset = (pageNumber - 1) * limitNumber;
+
   try {
-    const comments = await Comment.findAll({
+    const { count, rows: comments } = await Comment.findAndCountAll({
       where: { parentId: null },
       include: {
         model: Comment,
@@ -93,10 +104,17 @@ app.get("/comments", async (req, res) => {
           as: "Children",
         },
       },
-      order: [[sortBy, sortOrder.toUpperCase()]],
+      order: [[sortBy, sortOrder.toUpperCase()]], // Додаємо сортування
+      limit: limitNumber,
+      offset: offset,
     });
 
-    res.status(200).json(comments);
+    res.status(200).json({
+      totalItems: count,
+      totalPages: Math.ceil(count / limitNumber),
+      currentPage: pageNumber,
+      comments: comments,
+    });
   } catch (error) {
     console.error("Error fetching comments:", error);
     res.status(500).json({ error: "Failed to fetch comments" });
