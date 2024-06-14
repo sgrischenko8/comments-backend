@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const sequelize = require("./models/index");
 const Person = require("./models/Person");
 const Comment = require("./models/Comment");
+const { escape } = require("lodash");
 
 const app = express();
 app.use(bodyParser.json());
@@ -54,9 +55,9 @@ app.post("/comments", async (req, res) => {
     // }
 
     const newComment = await Comment.create({
-      userName,
-      email,
-      text,
+      userName: escape(userName),
+      email: escape(email),
+      text: escape(text),
       parentId,
     });
 

@@ -12,7 +12,9 @@
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
+    "escape-html": "^1.0.3",
     "express": "^4.19.2",
+    "lodash": "^4.17.21",
     "sequelize": "^6.37.3",
     "sqlite3": "^5.1.7"
   },
