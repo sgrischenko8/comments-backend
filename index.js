@@ -30,7 +30,7 @@ app.post("/people", async (req, res) => {
 app.get("/people", async (req, res) => {
   console.log("GET /people");
   try {
-    const people = await Person.findAll();
+    const people = await Person.findOne();
     res.status(200).json(people);
   } catch (error) {
     console.error("Error fetching people:", error);
@@ -67,16 +67,52 @@ app.post("/comments", async (req, res) => {
   }
 });
 
-// Показати всі коментарі
 app.get("/comments", async (req, res) => {
+  const { sortBy = "createdAt", sortOrder = "DESC" } = req.query;
+
+  // Перевірка на допустимі поля сортування
+  const allowedSortFields = ["userName", "email", "createdAt"];
+  if (!allowedSortFields.includes(sortBy)) {
+    return res.status(400).json({ error: "Invalid sort field" });
+  }
+
+  // Перевірка на допустимі порядки сортування
+  const allowedSortOrders = ["ASC", "DESC"];
+  if (!allowedSortOrders.includes(sortOrder.toUpperCase())) {
+    return res.status(400).json({ error: "Invalid sort order" });
+  }
+
   try {
-    const comment = await Comment.findAll();
-    res.status(200).json(comment);
+    const comments = await Comment.findAll({
+      where: { parentId: null },
+      include: {
+        model: Comment,
+        as: "Children",
+        include: {
+          model: Comment,
+          as: "Children",
+        },
+      },
+      order: [[sortBy, sortOrder.toUpperCase()]],
+    });
+
+    res.status(200).json(comments);
   } catch (error) {
-    console.error("Error fetching comment:", error);
-    res.status(500).json({ error: "Failed to fetch comment" });
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ error: "Failed to fetch comments" });
   }
 });
+
+// // Показати всі коментарі
+// app.get("/comments", async (req, res) => {
+//   try {
+//     const comment = await Comment.findAll();
+//     res.status(200).json(comment);
+//   } catch (error) {
+//     console.error("Error fetching comment:", error);
+//     res.status(500).json({ error: "Failed to fetch comment" });
+//   }
+// });
 
 const PORT = process.env.PORT || 3000;
 sequelize

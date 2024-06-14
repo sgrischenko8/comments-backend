@@ -27,4 +27,7 @@ const Comment = sequelize.define("Comment", {
   },
 });
 
+Comment.hasMany(Comment, { as: "Children", foreignKey: "parentId" });
+Comment.belongsTo(Comment, { as: "Parent", foreignKey: "parentId" });
+
 module.exports = Comment;
