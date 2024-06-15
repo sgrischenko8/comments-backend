@@ -8,6 +8,7 @@ const { escape } = require("lodash");
 const multer = require("multer");
 const path = require("path");
 const validateAndSanitizeHtml = require("./validateAndSanitizeHtml.js");
+const commentQueue = require("./queue");
 
 const app = express();
 app.use(bodyParser.json());
@@ -89,6 +90,9 @@ app.post("/comments", upload, async (req, res) => {
     if (!userName || !email || !text) {
       return res.status(400).json({ error: "All fields are required" });
     }
+    if (!email.includes("@")) {
+      return res.status(400).json({ error: "Email should be valid" });
+    }
 
     // Проверка и очистка HTML-кода
     try {
@@ -107,7 +111,19 @@ app.post("/comments", upload, async (req, res) => {
       file = req.files.file[0].path; // Сохраняем путь к текстовому файлу
     }
 
-    const newComment = await Comment.create({
+    // Добавление комментария в базу данных
+    // const newComment = await Comment.create({
+    //   userName: escape(userName),
+    //   email: escape(email),
+    //   text: req.body.text,
+    //   image, // Путь к изображению
+    //   file, // Путь к текстовому файлу
+    //   parentId,
+    // });
+
+    // Добавление комментария в очередь для асинхронной обработки
+    const job = await commentQueue.add({
+      // id: newComment.id, // Передаем ID только что добавленного комментария
       userName: escape(userName),
       email: escape(email),
       text: req.body.text,
@@ -116,10 +132,23 @@ app.post("/comments", upload, async (req, res) => {
       parentId,
     });
 
-    res.status(201).json(newComment);
+    res.status(201).json({
+      message: "Comment added to queue for processing",
+      comment: {
+        id: job.id,
+        userName: escape(userName),
+        email: escape(email),
+        text: req.body.text,
+        image,
+        file,
+        parentId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    });
   } catch (error) {
     console.error("Error creating comment:", error);
-    res.status(500).json({ error: "Failed to create comment" });
+    res.status(400).json({ error: "Failed to create comment" });
   }
 });
 
