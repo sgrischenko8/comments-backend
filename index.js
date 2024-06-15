@@ -5,10 +5,51 @@ const sequelize = require("./models/index");
 const Person = require("./models/Person");
 const Comment = require("./models/Comment");
 const { escape } = require("lodash");
+const multer = require("multer");
+const path = require("path");
+const validateAndSanitizeHtml = require("./validateAndSanitizeHtml.js");
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
+
+// Настройка multer для сохранения файлов
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./uploads/"); // Директория для сохранения файлов
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname)); // Генерация уникального имени файла
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    // Фильтрация файлов по расширениям
+    const filetypes = /\.(jpeg|jpg|png|gif|txt)$/i;
+    const extname = filetypes.test(path.extname(file.originalname));
+
+    console.log(`File: ${file.originalname}, Extname: ${extname}`);
+
+    if (extname) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Allowed file types are jpeg, jpg, png, gif for images and txt for text files."
+        )
+      );
+    }
+  },
+  // limits: {
+  //   fileSize: 100 * 1024, // Максимальный размер файла в байтах (100 КБ)
+  // },
+}).fields([
+  { name: "image", maxCount: 1 },
+  { name: "file", maxCount: 1 },
+]);
 
 // const RECAPTCHA_SECRET_KEY = "6Ldmw_gpAAAAAPDvhLTEQ78lBn8DGCJ4J4FFVK97";
 
@@ -40,24 +81,38 @@ app.get("/people", async (req, res) => {
 });
 
 // Додати новий коментар
-app.post("/comments", async (req, res) => {
+app.post("/comments", upload, async (req, res) => {
   try {
     const { userName, email, text, parentId } = req.body;
+    console.log(userName, email, text, parentId, "------------------------");
+
     if (!userName || !email || !text) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // const captchaResponse = await axios.post(
-    //   `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET_KEY}&response=${captchaToken}`
-    // );
-    // if (!captchaResponse.data.success) {
-    //   return res.status(400).json({ error: "Failed captcha verification" });
-    // }
+    // Проверка и очистка HTML-кода
+    try {
+      req.body.text = await validateAndSanitizeHtml(text);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    let image = null;
+    let file = null;
+    console.log(req.files);
+    if (req.files && req.files.image) {
+      image = req.files.image[0].path; // Сохраняем путь к изображению
+    }
+    if (req.files && req.files.file) {
+      file = req.files.file[0].path; // Сохраняем путь к текстовому файлу
+    }
 
     const newComment = await Comment.create({
       userName: escape(userName),
       email: escape(email),
-      text: escape(text),
+      text: req.body.text,
+      image, // Путь к изображению
+      file, // Путь к текстовому файлу
       parentId,
     });
 
@@ -95,26 +150,41 @@ app.get("/comments", async (req, res) => {
   const offset = (pageNumber - 1) * limitNumber;
 
   try {
-    const { count, rows: comments } = await Comment.findAndCountAll({
+    const { count, rows: topComments } = await Comment.findAndCountAll({
       where: { parentId: null },
-      include: {
-        model: Comment,
-        as: "Children",
-        include: {
-          model: Comment,
-          as: "Children",
-        },
-      },
       order: [[sortBy, sortOrder.toUpperCase()]], // Додаємо сортування
       limit: limitNumber,
       offset: offset,
     });
 
+    // Получаем все комментарии для построения дерева
+    const allComments = await Comment.findAll({
+      order: [[sortBy, sortOrder.toUpperCase()]], // Додаємо сортування
+    });
+
+    // Функция для построения дерева комментариев
+    const buildCommentTree = (comments, parentId = null) => {
+      return comments
+        .filter((comment) => comment.parentId === parentId)
+        .map((comment) => {
+          const children = buildCommentTree(comments, comment.id);
+          return { ...comment.toJSON(), Children: children };
+        });
+    };
+
+    // Строим дерево только для верхнеуровневых комментариев с учетом пагинации
+    const commentTree = topComments.map((comment) => {
+      const children = buildCommentTree(allComments, comment.id);
+      return { ...comment.toJSON(), Children: children };
+    });
+
+    // const commentTree = buildCommentTree(allComments);
+
     res.status(200).json({
       totalItems: count,
       totalPages: Math.ceil(count / limitNumber),
       currentPage: pageNumber,
-      comments: comments,
+      comments: commentTree,
     });
   } catch (error) {
     console.error("Error fetching comments:", error);

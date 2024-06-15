@@ -21,6 +21,14 @@ const Comment = sequelize.define("Comment", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  image: {
+    type: DataTypes.STRING, // Хранение пути к файлу изображения
+    allowNull: true,
+  },
+  file: {
+    type: DataTypes.STRING, // Хранение пути к текстовому файлу
+    allowNull: true,
+  },
   parentId: {
     type: DataTypes.INTEGER,
     allowNull: true,
