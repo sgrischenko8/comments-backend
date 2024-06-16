@@ -3,6 +3,20 @@ const Comment = require("../models/Comment");
 const commentQueue = require("../queue");
 const validateAndSanitizeHtml = require("../validateAndSanitizeHtml");
 const { updateCacheWithNewComments, cache } = require("../utils/cacheUtils");
+const { getCommentsWithChildren } = require("../utils/commentUtils");
+const EventEmitter = require("events");
+
+const eventEmitter = new EventEmitter();
+
+// Этот слушатель реагирует на событие завершения обработки комментария
+eventEmitter.on("commentProcessed", async (comment) => {
+  try {
+    await updateCacheWithNewComments();
+    console.log("Cache updated with new comments after processing:", comment);
+  } catch (error) {
+    console.error("Error updating cache with new comments:", error);
+  }
+});
 
 async function addComment(req, res) {
   try {
@@ -38,23 +52,12 @@ async function addComment(req, res) {
     const result = await job.finished();
     console.log("Comment processing result:", result);
 
-    // console.log("trrrrrrrrrr:__________________", job);
-    await updateCacheWithNewComments();
+    // Генерируем событие, что комментарий был успешно обработан
+    eventEmitter.emit("commentProcessed", result);
 
     res.status(201).json({
       message: "Comment added to queue for processing",
       comment: result,
-
-      //     {
-      //     id: job.id,
-      //     userName: escape(userName),
-      //     email: escape(email),
-      //     text: req.body.text,
-      //     image,
-      //     file,
-      //     parentId,
-      //     createdAt: new Date().toISOString(),
-      //   },
     });
   } catch (error) {
     console.error("Error creating comment:", error);
@@ -94,43 +97,18 @@ async function getComments(req, res) {
     }
 
     if (!comments || comments.length === 0) {
-      // const pageNumber = parseInt(page);
-      // const limitNumber = parseInt(limit);
-      // const offset = (pageNumber - 1) * limitNumber;
-
-      const { count, rows: topComments } = await Comment.findAndCountAll({
-        where: { parentId: null },
-        order: [[sortBy, sortOrder.toUpperCase()]],
-        limit: limitNumber,
-        offset: offset,
-      });
-
-      const allComments = await Comment.findAll({
-        order: [[sortBy, sortOrder.toUpperCase()]],
-      });
-
-      const buildCommentTree = (comments, parentId = null) => {
-        return comments
-          .filter((comment) => comment.parentId === parentId)
-          .map((comment) => {
-            const children = buildCommentTree(allComments, comment.id);
-            return { ...comment.toJSON(), Children: children };
-          });
-      };
-
-      const commentTree = topComments.map((comment) => {
-        const children = buildCommentTree(allComments, comment.id);
-        return { ...comment.toJSON(), Children: children };
-      });
-
-      comments = commentTree;
-
+      comments = await getCommentsWithChildren(
+        sortBy,
+        sortOrder,
+        limitNumber,
+        offset
+      );
       if (
         pageNumber === 1 &&
         sortBy === "createdAt" &&
         sortOrder.toUpperCase() === "DESC"
       ) {
-        cache.set("latestComments", commentTree);
+        cache.set("latestComments", comments);
       }
     }
 
