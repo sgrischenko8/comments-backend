@@ -25,8 +25,11 @@ commentQueue.process(async (job) => {
       file,
       parentId,
     });
-      console.log("Comment saved successfully");
-       return newComment;
+    console.log(
+      "Comment saved successfully.........................",
+      newComment.dataValues
+    );
+    return newComment.dataValues;
   } catch (error) {
     console.error("Error saving comment:", error);
     throw new Error("Failed to save comment");
