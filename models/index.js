@@ -1,10 +1,14 @@
 // models/index.js
 const { Sequelize } = require("sequelize");
 
-const sequelize = new Sequelize("mydatabase", "myuser", "mypassword", {
-  host: "localhost",
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "mysql",
-  port: 3306, // порт MySQL
+  dialectOptions: {
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  },
+
   define: {
     timestamps: true, // опционально, если вам нужны временные метки
     createdAt: "createdAt", // если нужно настраивать название поля для createdAt
