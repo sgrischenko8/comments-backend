@@ -47,6 +47,8 @@ const Comment = sequelize.define(
     modelName: "Comment",
     tableName: "Comments",
     timestamps: true,
+    createdAt: "createdAt", // Имя поля для createdAt
+    updatedAt: false, // Отключаем поле updatedAt
   }
 );
 

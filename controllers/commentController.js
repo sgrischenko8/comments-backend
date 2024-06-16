@@ -4,6 +4,19 @@ const commentQueue = require("../queue");
 const validateAndSanitizeHtml = require("../validateAndSanitizeHtml");
 const { updateCacheWithNewComments, cache } = require("../utils/cacheUtils");
 const { getCommentsWithChildren } = require("../utils/commentUtils");
+const EventEmitter = require("events");
+
+const eventEmitter = new EventEmitter();
+
+// Этот слушатель реагирует на событие завершения обработки комментария
+eventEmitter.on("commentProcessed", async (comment) => {
+  try {
+    await updateCacheWithNewComments();
+    console.log("Cache updated with new comments after processing:", comment);
+  } catch (error) {
+    console.error("Error updating cache with new comments:", error);
+  }
+});
 
 async function addComment(req, res) {
   try {
@@ -39,8 +52,8 @@ async function addComment(req, res) {
     const result = await job.finished();
     console.log("Comment processing result:", result);
 
-    // console.log("trrrrrrrrrr:__________________", job);
-    await updateCacheWithNewComments();
+    // Генерируем событие, что комментарий был успешно обработан
+    eventEmitter.emit("commentProcessed", result);
 
     res.status(201).json({
       message: "Comment added to queue for processing",
