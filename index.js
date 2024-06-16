@@ -52,8 +52,6 @@ const upload = multer({
   { name: "file", maxCount: 1 },
 ]);
 
-// const RECAPTCHA_SECRET_KEY = "6Ldmw_gpAAAAAPDvhLTEQ78lBn8DGCJ4J4FFVK97";
-
 // Додати нового користувача
 app.post("/people", async (req, res) => {
   try {
