@@ -10,9 +10,6 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-app.use("/comments", commentRoutes);
-app.use("/people", personRoutes);
-
 const PORT = process.env.PORT || 3000;
 sequelize
   .sync()
