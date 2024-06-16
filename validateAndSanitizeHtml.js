@@ -28,7 +28,7 @@ const validateAndSanitizeHtml = async (html) => {
       format: "html",
     });
 
-    console.log("HTML Validator result:__________________", result);
+    // console.log("HTML Validator result:__________________", result);
 
     if (result.includes("Error")) {
       throw new Error("Invalid XHTML");
