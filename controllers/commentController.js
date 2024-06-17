@@ -5,6 +5,8 @@ const validateAndSanitizeHtml = require("../validateAndSanitizeHtml");
 const { updateCacheWithNewComments, cache } = require("../utils/cacheUtils");
 const { getCommentsWithChildren } = require("../utils/commentUtils");
 const EventEmitter = require("events");
+const Jimp = require("jimp");
+const { unlink } = require("node:fs");
 
 const eventEmitter = new EventEmitter();
 
@@ -20,15 +22,74 @@ eventEmitter.on("commentProcessed", async (comment) => {
 
 async function addComment(req, res) {
   try {
-    const { userName, email, text } = req.body;
-
-    // Проверяем, что все необходимые данные присутствуют
+    const { userName, email, text, parentId } = req.body;
     if (!userName || !email || !text) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ error: "All fields are required" });
+    }
+    if (!email.includes("@")) {
+      return res.status(400).json({ error: "Email should be valid" });
     }
 
-    const comment = await Comment.create({ userName, email, text });
-    res.status(201).json(comment);
+    req.body.text = await validateAndSanitizeHtml(text);
+
+    let image = null;
+    let file = null;
+    if (req.files && req.files.image) {
+      image = req.files.image[0].path;
+    }
+    if (req.files && req.files.file) {
+      file = req.files.file[0].path;
+    }
+    if (file) {
+      if (
+        file.mimetype === "text/plain" &&
+        file.originalname.slice(-4) === ".TXT"
+      ) {
+        // check if file weight more that 100 kb (100*1024b)
+
+        if (file.size > 100 * 1024) {
+          return res
+            .status(400)
+            .json({ message: "Text file not allow to be bigger that 100kb. " });
+        }
+      } else {
+        return res
+          .status(400)
+          .json({ message: "You allowed upload only .txt file. " });
+      }
+    }
+
+    image = image.path;
+    if (image) {
+      const avatar = await Jimp.read(image);
+      console.log(avatar);
+      avatar.resize(250, 250).write(image.replace("tmp", "uploads"));
+
+      unlink(image, (err) => {
+        if (err) throw err;
+      });
+    }
+
+    const job = await commentQueue.add({
+      userName: escape(userName),
+      email: escape(email),
+      text: req.body.text,
+      image,
+      file,
+      parentId,
+    });
+
+    // Ожидаем завершения задания и получение данных нового комментария
+    const result = await job.finished();
+    console.log("Comment processing result:", result);
+
+    // Генерируем событие, что комментарий был успешно обработан
+    eventEmitter.emit("commentProcessed", result);
+
+    res.status(201).json({
+      message: "Comment added to queue for processing",
+      comment: result,
+    });
   } catch (error) {
     console.error("Error creating comment:", error);
     res.status(500).json({ error: "Internal Server Error" });
