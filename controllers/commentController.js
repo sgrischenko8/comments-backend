@@ -79,8 +79,6 @@ async function addComment(req, res) {
       text: req.body.text,
       image: image?.path | "",
       file: file?.path | "",
-      image: image.path,
-      file: file.path,
       parentId,
     });
 
