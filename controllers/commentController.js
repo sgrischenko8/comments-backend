@@ -75,8 +75,8 @@ async function addComment(req, res) {
       userName: escape(userName),
       email: escape(email),
       text: req.body.text,
-      image,
-      file,
+      image: image.path,
+      file: file.path,
       parentId,
     });
 
