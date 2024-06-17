@@ -34,40 +34,41 @@ async function addComment(req, res) {
 
     let image = null;
     let file = null;
-    if (req.files && req.files.image) {
-      image = req.files.image[0].path;
+    // Логируем req.files для отладки
+    console.log("req.files:", req.files);
+
+    if (req.files && req.files.image && req.files.image[0]) {
+      image = req.files.image[0];
+      console.log("Image file:", image);
+
+      // Проверка и изменение размера изображения
+      const imagePath = path.resolve(__dirname, "..", image.path);
+      const loadedImage = await Jimp.read(imagePath);
+      loadedImage.resize(320, 240).write(imagePath);
+    } else {
+      console.log("No image file uploaded");
     }
-    if (req.files && req.files.file) {
-      file = req.files.file[0].path;
-    }
-    if (file) {
+
+    if (req.files && req.files.file && req.files.file[0]) {
+      file = req.files.file[0];
+      console.log("Text file:", file);
+
       if (
         file.mimetype === "text/plain" &&
-        file.originalname.slice(-4) === ".TXT"
+        file.originalname.slice(-4).toUpperCase() === ".TXT"
       ) {
-        // check if file weight more that 100 kb (100*1024b)
-
         if (file.size > 100 * 1024) {
-          return res
-            .status(400)
-            .json({ message: "Text file not allow to be bigger that 100kb. " });
+          return res.status(400).json({
+            message: "Text file not allowed to be bigger than 100kb.",
+          });
         }
       } else {
         return res
           .status(400)
-          .json({ message: "You allowed upload only .txt file. " });
+          .json({ message: "You are allowed to upload only .txt files." });
       }
-    }
-
-    image = image.path;
-    if (image) {
-      const avatar = await Jimp.read(image);
-      console.log(avatar);
-      avatar.resize(250, 250).write(image.replace("tmp", "uploads"));
-
-      unlink(image, (err) => {
-        if (err) throw err;
-      });
+    } else {
+      console.log("No text file uploaded");
     }
 
     const job = await commentQueue.add({
