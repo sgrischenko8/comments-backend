@@ -70,13 +70,13 @@ async function addComment(req, res) {
     } else {
       console.log("No text file uploaded");
     }
-
+    console.log(file.path, "==========path");
     const job = await commentQueue.add({
       userName: escape(userName),
       email: escape(email),
       text: req.body.text,
-      image: image.path,
-      file: file.path,
+      image: image?.path | null,
+      file: file?.path | null,
       parentId,
     });
 
