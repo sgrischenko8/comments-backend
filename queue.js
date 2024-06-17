@@ -1,5 +1,5 @@
 const Queue = require("bull");
-const redisConfig = { redis: { port: 6380, host: "127.0.0.1" } };
+const redisConfig = { redis: process.env.REDISCLOUD_URL };
 
 // Создание очереди для комментариев
 const commentQueue = new Queue("commentQueue", redisConfig);
