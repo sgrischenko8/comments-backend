@@ -7,6 +7,8 @@ const { getCommentsWithChildren } = require("../utils/commentUtils");
 const EventEmitter = require("events");
 const Jimp = require("jimp");
 const { unlink } = require("node:fs");
+const path = require("path");
+const fs = require("fs");
 
 const eventEmitter = new EventEmitter();
 
