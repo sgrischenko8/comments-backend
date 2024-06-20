@@ -4,15 +4,15 @@ const fs = require("fs");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, "..", "uploads");
+    const uploadDir = path.join(".", "uploads");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir);
     }
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + "-" + file.originalname;
+    cb(null, uniqueSuffix);
   },
 });
 
@@ -22,7 +22,7 @@ const upload = multer({
     const filetypes = /\.(jpeg|jpg|png|gif|txt)$/i;
     const extname = filetypes.test(path.extname(file.originalname));
 
-    console.log(`File: ${file.originalname}, Extname: ${extname}`);
+    // console.log(`File: ${file.originalname}, Extname: ${extname}`);
 
     if (extname) {
       cb(null, true);

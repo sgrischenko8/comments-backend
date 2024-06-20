@@ -1,4 +1,6 @@
 const { escape } = require("lodash");
+const svgCaptcha = require("svg-captcha");
+const { signCaptcha, extractCaptcha } = require("../utils/jwtService");
 const Comment = require("../models/Comment");
 const commentQueue = require("../queue");
 const validateAndSanitizeHtml = require("../validateAndSanitizeHtml");
@@ -6,27 +8,70 @@ const { updateCacheWithNewComments, cache } = require("../utils/cacheUtils");
 const { getCommentsWithChildren } = require("../utils/commentUtils");
 const EventEmitter = require("events");
 const Jimp = require("jimp");
-const { unlink } = require("node:fs");
 const path = require("path");
-const fs = require("fs");
+
+const WebSocket = require("ws");
+
+const server = new WebSocket.Server({ port: 8080 });
+
+const limit = 25;
+
+server.on("connection", (socket) => {
+  console.log("A new client connected!");
+
+  // Send a message to the client
+  socket.send("Welcome to the WebSocket server!");
+
+  // Handle incoming messages from the client
+  socket.on("message", async (message) => {
+    console.log(`Received message: ${message}`);
+
+    const modifiedMessage = message.toString("utf8");
+    try {
+      const validatedHtml = await validateAndSanitizeHtml(modifiedMessage);
+      socket.send(validatedHtml);
+    } catch (error) {
+      console.log(error);
+      socket.send(error.toString());
+    }
+  });
+
+  // Handle client disconnect
+  socket.on("close", () => {
+    console.log("Client disconnected");
+  });
+});
 
 const eventEmitter = new EventEmitter();
 
 // Этот слушатель реагирует на событие завершения обработки комментария
-eventEmitter.on("commentProcessed", async (comment) => {
+eventEmitter.on("commentProcessed", () => {
   try {
-    await updateCacheWithNewComments();
-    console.log("Cache updated with new comments after processing:", comment);
+    updateCacheWithNewComments();
+    // console.log("Cache updated with new comments after processing:");
   } catch (error) {
     console.error("Error updating cache with new comments:", error);
   }
 });
 
 async function addComment(req, res) {
+  const { captcha: cryptedCaptcha } = req.cookies;
   try {
-    const { userName, email, text, parentId } = req.body;
+    const {
+      userName,
+      email,
+      text,
+      parentId,
+      captcha,
+      sortBy = "createdAt",
+      sortOrder = "DESC",
+      page = 1,
+    } = req.body;
     if (!userName || !email || !text) {
       return res.status(400).json({ error: "All fields are required" });
+    }
+    if (extractCaptcha(cryptedCaptcha) !== captcha) {
+      return res.status(400).json({ error: "Invalid CAPTCHA" });
     }
     if (!email.includes("@")) {
       return res.status(400).json({ error: "Email should be valid" });
@@ -36,67 +81,112 @@ async function addComment(req, res) {
 
     let image = null;
     let file = null;
-    // Логируем req.files для отладки
-    console.log("req.files:", req.files);
 
-    if (req.files && req.files.image && req.files.image[0]) {
-      image = req.files.image[0];
-      console.log("Image file:", image);
+    if (req.files && req.files.image) {
+      if (req.files.image[0]) {
+        image = req.files.image[0];
 
-      // Проверка и изменение размера изображения
-      const imagePath = path.resolve(__dirname, "..", image.path);
-      const loadedImage = await Jimp.read(imagePath);
-      loadedImage.resize(320, 240).write(imagePath);
-    } else {
-      console.log("No image file uploaded");
+        // Проверка и изменение размера изображения
+        const imagePath = path.resolve(__dirname, "..", image.path);
+        const loadedImage = await Jimp.read(imagePath);
+        loadedImage.contain(
+          320,
+          240,
+          Jimp.HORIZONTAL_ALIGN_CENTER | Jimp.VERTICAL_ALIGN_MIDDLE,
+          (err, image) => {
+            if (err) {
+              console.error("Error processing image:", err);
+              return res.status(500).json({
+                message: "Error processing image",
+              });
+            }
+
+            image.write(imagePath, (err) => {
+              if (err) {
+                console.error("Error saving image:", err);
+                return res.status(500).json({
+                  message: "Error saving image",
+                });
+              }
+            });
+          }
+        );
+      } else {
+        return res.status(400).json({
+          message: "No image file uploaded",
+        });
+      }
     }
 
-    if (req.files && req.files.file && req.files.file[0]) {
-      file = req.files.file[0];
-      console.log("Text file:", file);
-
-      if (
-        file.mimetype === "text/plain" &&
-        file.originalname.slice(-4).toUpperCase() === ".TXT"
-      ) {
-        if (file.size > 100 * 1024) {
-          return res.status(400).json({
-            message: "Text file not allowed to be bigger than 100kb.",
-          });
+    if (req.files && req.files.file) {
+      if (req.files.file[0]) {
+        file = req.files.file[0];
+        console.log(file.path, "file path-------");
+        if (
+          file.mimetype === "text/plain" &&
+          file.originalname.slice(-4).toUpperCase() === ".TXT"
+        ) {
+          if (file.size > 100 * 1024) {
+            return res.status(400).json({
+              message: "Text file not allowed to be bigger than 100kb.",
+            });
+          }
+        } else {
+          return res
+            .status(400)
+            .json({ message: "You are allowed to upload only .txt files." });
         }
       } else {
-        return res
-          .status(400)
-          .json({ message: "You are allowed to upload only .txt files." });
+        return res.status(400).json({
+          message: "No text file uploaded",
+        });
       }
-    } else {
-      console.log("No text file uploaded");
     }
-    console.log(file?.path, "========filepath");
-    console.log(image?.path, "========imagepath");
-
+    let date = Date.now();
     const job = await commentQueue.add({
       userName: escape(userName),
       email: escape(email),
       text: req.body.text,
-      // image: image?.path | "",
-      // file: file?.path | "",
       image: image ? image.path : "",
       file: file ? file.path : "",
       parentId,
     });
+    console.log("after queue", Date.now() - date);
+    date = Date.now();
 
     // Ожидаем завершения задания и получение данных нового комментария
     const result = await job.finished();
-    console.log("Comment processing result:", result);
+
+    console.log("after job", Date.now() - date);
+    date = Date.now();
+
+    const comments = await getCommentsWithChildren(
+      sortBy,
+      sortOrder,
+      limit,
+      (+page - 1) * limit
+    );
+    console.log("after getNewCom", Date.now() - date);
+    date = Date.now();
+
+    const totalItems = await Comment.count({
+      where: {
+        parentId: null,
+      },
+    });
+
+    console.log("after count", Date.now() - date);
+
+    res.status(201).json({
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      currentPage: page,
+      comments,
+    });
 
     // Генерируем событие, что комментарий был успешно обработан
     eventEmitter.emit("commentProcessed", result);
-
-    res.status(201).json({
-      message: "Comment added to queue for processing",
-      comment: result,
-    });
+    console.log("after emit", Date.now() - date);
   } catch (error) {
     console.error("Error creating comment:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -104,12 +194,8 @@ async function addComment(req, res) {
 }
 
 async function getComments(req, res) {
-  const {
-    sortBy = "createdAt",
-    sortOrder = "DESC",
-    page = 1,
-    limit = 3,
-  } = req.query;
+  const { sortBy = "createdAt", sortOrder = "DESC", page = 1 } = req.query;
+
   const allowedSortFields = ["userName", "email", "createdAt"];
   if (!allowedSortFields.includes(sortBy)) {
     return res.status(400).json({ error: "Invalid sort field" });
@@ -121,16 +207,16 @@ async function getComments(req, res) {
   }
 
   const pageNumber = parseInt(page);
-  const limitNumber = parseInt(limit);
-  const offset = (pageNumber - 1) * limitNumber;
+  const offset = (pageNumber - 1) * limit;
+
+  const isDefaultQuery =
+    pageNumber === 1 &&
+    sortBy === "createdAt" &&
+    sortOrder.toUpperCase() === "DESC";
 
   try {
     let comments = [];
-    if (
-      pageNumber === 1 &&
-      sortBy === "createdAt" &&
-      sortOrder.toUpperCase() === "DESC"
-    ) {
+    if (isDefaultQuery) {
       comments = cache.get("latestComments");
     }
 
@@ -138,21 +224,23 @@ async function getComments(req, res) {
       comments = await getCommentsWithChildren(
         sortBy,
         sortOrder,
-        limitNumber,
+        limit,
         offset
       );
-      if (
-        pageNumber === 1 &&
-        sortBy === "createdAt" &&
-        sortOrder.toUpperCase() === "DESC"
-      ) {
+      if (isDefaultQuery) {
         cache.set("latestComments", comments);
       }
     }
 
+    const totalItems = await Comment.count({
+      where: {
+        parentId: null,
+      },
+    });
+
     res.status(200).json({
-      totalItems: comments.length,
-      totalPages: Math.ceil(comments.length / limitNumber),
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
       currentPage: pageNumber,
       comments: comments,
     });
@@ -162,4 +250,22 @@ async function getComments(req, res) {
   }
 }
 
-module.exports = { addComment, getComments };
+async function getCaptcha(req, res) {
+  const captcha = svgCaptcha.create({
+    size: 6, // Number of characters in the captcha
+    ignoreChars: "0o1i", // Characters to exclude
+    noise: 2, // Number of noise lines
+    color: true, // Use colored text
+    background: "#cc9966", // Background color
+  });
+
+  res.cookie("captcha", signCaptcha(captcha.text), {
+    httpOnly: true,
+    secure: false,
+  }); // Use 'secure: true' in production with HTTPS
+
+  res.type("svg");
+  res.status(200).send(captcha.data);
+}
+
+module.exports = { addComment, getComments, getCaptcha };

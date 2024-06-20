@@ -1,7 +1,13 @@
 // utils/commentUtils.js
 const Comment = require("../models/Comment");
 
-async function getCommentsWithChildren(sortBy, sortOrder, limit, offset) {
+async function getCommentsWithChildren(
+  sortBy = "createdAt",
+  sortOrder = "DESC",
+  limit = 25,
+  offset = 0
+) {
+  let date = Date.now();
   // Запрос для получения родительских комментариев
   const topCommentsQuery = `
     SELECT * FROM Comments
@@ -9,14 +15,28 @@ async function getCommentsWithChildren(sortBy, sortOrder, limit, offset) {
     ORDER BY ${sortBy} ${sortOrder}
     LIMIT :limit OFFSET :offset;
   `;
-  const topComments = await Comment.sequelize.query(topCommentsQuery, {
-    replacements: { limit, offset },
-    model: Comment,
-    mapToModel: true,
-  });
-
-  // Использование рекурсивного CTE для получения всех дочерних комментариев
-  const allCommentsQuery = `
+  try {
+    const topComments = await Comment.sequelize.query(topCommentsQuery, {
+      replacements: { limit, offset },
+      model: Comment,
+      mapToModel: true,
+    });
+    // const topComments = await Comment.findAll({
+    //   where: { parentId: null },
+    //   order: [[sortBy, sortOrder]],
+    //   limit,
+    //   offset,
+    //   include: [
+    //     {
+    //       model: Comment,
+    //       as: "children",
+    //     },
+    //   ],
+    // });
+    console.log("after top", Date.now() - date);
+    date = Date.now();
+    // Использование рекурсивного CTE для получения всех дочерних комментариев
+    const allCommentsQuery = `
     WITH RECURSIVE CommentCTE AS (
       SELECT * FROM Comments WHERE parentId IS NULL
       UNION ALL
@@ -25,27 +45,35 @@ async function getCommentsWithChildren(sortBy, sortOrder, limit, offset) {
     )
     SELECT * FROM CommentCTE;
   `;
-  const allComments = await Comment.sequelize.query(allCommentsQuery, {
-    model: Comment,
-    mapToModel: true,
-  });
+    const allComments = await Comment.sequelize.query(allCommentsQuery, {
+      model: Comment,
+      mapToModel: true,
+    });
+    console.log("after all comments", Date.now() - date, allComments.length);
+    date = Date.now();
 
-  // Построение дерева комментариев
-  const buildCommentTree = (comments, parentId = null) => {
-    return comments
-      .filter((comment) => comment.parentId === parentId)
-      .map((comment) => {
-        const children = buildCommentTree(comments, comment.id);
-        return { ...comment.toJSON(), children };
-      });
-  };
+    // Построение дерева комментариев
+    const buildCommentTree = (comments, parentId = null) => {
+      return comments
+        .filter((comment) => comment.parentId === parentId)
+        .map((comment) => {
+          const children = buildCommentTree(comments, comment.id);
+          return { ...comment.toJSON(), children };
+        });
+    };
 
-  const commentTree = topComments.map((comment) => {
-    const children = buildCommentTree(allComments, comment.id);
-    return { ...comment.toJSON(), children };
-  });
-
-  return commentTree;
+    const commentTree = topComments.map((comment) => {
+      const children = buildCommentTree(allComments, comment.id);
+      return { ...comment.toJSON(), children };
+    });
+    console.log("after tree", Date.now() - date);
+    date = Date.now();
+    // console.log(commentTree, "=======CACHE");
+    return commentTree;
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Error fetching data from Database" });
+  }
 }
 
 module.exports = { getCommentsWithChildren };
