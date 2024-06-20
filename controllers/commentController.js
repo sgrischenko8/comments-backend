@@ -67,10 +67,10 @@ async function addComment(req, res) {
       sortOrder = "DESC",
       page = 1,
     } = req.body;
+    console.log(req.cookies, "=======crypted captcha");
     if (!userName || !email || !text || !cryptedCaptcha) {
       return res.status(400).json({ error: "All fields are required" });
     }
-    console.log(req.cookies, "=======crypted captcha");
     console.log(captcha, "======= captcha");
     if (extractCaptcha(cryptedCaptcha) !== captcha) {
       return res.status(400).json({ error: "Invalid CAPTCHA" });
