@@ -27,6 +27,7 @@ const corsOptions = {
 
 // app.use(helmet());
 app.use("/uploads", cors(corsOptions), express.static("uploads"));
+app.use(express.static("public"));
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(cors(corsOptions));
