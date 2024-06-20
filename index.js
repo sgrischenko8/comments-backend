@@ -17,13 +17,26 @@ const app = express();
 //   next();
 // });
 
+const allowedOrigins = ["http://localhost:5173", process.env.BASE_URL];
 const corsOptions = {
-  origin:
-    process.env.NODE_ENV === "development"
-      ? "http://localhost:5173"
-      : process.env.BASE_URL,
+  origin: function (origin, callback) {
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  optionsSuccessStatus: 200,
   credentials: true,
 };
+
+// const corsOptions = {
+//   origin:
+//     process.env.NODE_ENV === "development"
+//       ? "http://localhost:5173"
+//       : process.env.BASE_URL,
+//   credentials: true,
+// };
 
 // app.use(helmet());
 app.use("/uploads", cors(corsOptions), express.static("uploads"));
