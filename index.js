@@ -12,10 +12,10 @@ const commentRoutes = require("./routes/commentRoutes");
 
 const app = express();
 
-// app.use((req, res, next) => {
-//   res.setHeader("Content-Disposition", `attachment`); // Example of a custom header
-//   next();
-// });
+app.use((req, res, next) => {
+  res.setHeader("Content-Disposition", `attachment`);
+  next();
+});
 
 const allowedOrigins = ["http://localhost:5173", process.env.BASE_URL];
 const corsOptions = {
