@@ -70,7 +70,7 @@ async function addComment(req, res) {
     if (!userName || !email || !text) {
       return res.status(400).json({ error: "All fields are required" });
     }
-    console.log(extractCaptcha(cryptedCaptcha), "=======crypted captcha");
+    console.log(cryptedCaptcha, "=======crypted captcha");
     console.log(captcha, "======= captcha");
     if (extractCaptcha(cryptedCaptcha) !== captcha) {
       return res.status(400).json({ error: "Invalid CAPTCHA" });
