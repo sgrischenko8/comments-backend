@@ -53,12 +53,12 @@ const Comment = sequelize.define(
 );
 
 Comment.hasMany(Comment, {
-  as: "Children",
+  as: "children",
   foreignKey: "parentId",
   useJunctionTable: false,
 });
 Comment.belongsTo(Comment, {
-  as: "Parent",
+  as: "parent",
   foreignKey: "parentId",
   useJunctionTable: false,
 });
