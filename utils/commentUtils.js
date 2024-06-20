@@ -9,30 +9,30 @@ async function getCommentsWithChildren(
 ) {
   let date = Date.now();
   // Запрос для получения родительских комментариев
-  const topCommentsQuery = `
-    SELECT * FROM Comments
-    WHERE parentId IS NULL
-    ORDER BY ${sortBy} ${sortOrder}
-    LIMIT :limit OFFSET :offset;
-  `;
+  // const topCommentsQuery = `
+  //   SELECT * FROM Comments
+  //   WHERE parentId IS NULL
+  //   ORDER BY ${sortBy} ${sortOrder}
+  //   LIMIT :limit OFFSET :offset;
+  // `;
   try {
-    const topComments = await Comment.sequelize.query(topCommentsQuery, {
-      replacements: { limit, offset },
-      model: Comment,
-      mapToModel: true,
-    });
-    // const topComments = await Comment.findAll({
-    //   where: { parentId: null },
-    //   order: [[sortBy, sortOrder]],
-    //   limit,
-    //   offset,
-    //   include: [
-    //     {
-    //       model: Comment,
-    //       as: "children",
-    //     },
-    //   ],
+    // const topComments = await Comment.sequelize.query(topCommentsQuery, {
+    //   replacements: { limit, offset },
+    //   model: Comment,
+    //   mapToModel: true,
     // });
+    const topComments = await Comment.findAll({
+      where: { parentId: null },
+      order: [[sortBy, sortOrder]],
+      limit,
+      offset,
+      include: [
+        {
+          model: Comment,
+          as: "children",
+        },
+      ],
+    });
     console.log("after top", Date.now() - date);
     date = Date.now();
     // Использование рекурсивного CTE для получения всех дочерних комментариев
