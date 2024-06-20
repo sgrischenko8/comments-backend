@@ -263,6 +263,7 @@ async function getCaptcha(req, res) {
 
   res.cookie("captcha", signCaptcha(captcha.text), {
     httpOnly: process.env.NODE_ENV === "development" ? true : false,
+    sameSite: "None",
     secure: process.env.NODE_ENV === "development" ? false : true,
   });
 
