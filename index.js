@@ -20,13 +20,12 @@ const app = express();
 const allowedOrigins = ["http://localhost:5173", process.env.BASE_URL];
 const corsOptions = {
   origin: function (origin, callback) {
-    if (allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
-  optionsSuccessStatus: 200,
   credentials: true,
 };
 
