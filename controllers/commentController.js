@@ -149,8 +149,8 @@ async function addComment(req, res) {
       userName: escape(userName),
       email: escape(email),
       text: req.body.text,
-      image: image ? image.path : "",
-      file: file ? file.path : "",
+      image,
+      file,
       parentId,
     });
     console.log("after queue", Date.now() - date);
