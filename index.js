@@ -9,8 +9,37 @@ const sequelize = require("./models/index");
 // const helmet = require("helmet");
 const commentRoutes = require("./routes/commentRoutes");
 // const personRoutes = require("./routes/personRoutes");
-
 const app = express();
+const { Server } = require("ws");
+
+const wss = new Server({ app });
+
+wss.on("connection", (socket) => {
+  console.log("A new client connected!");
+
+  // Send a message to the client
+  socket.send("Welcome to the WebSocket server!");
+
+  // Handle incoming messages from the client
+  socket.on("message", async (message) => {
+    console.log(`Received message: ${message}`);
+
+    const modifiedMessage = message.toString("utf8");
+    try {
+      const validatedHtml = await validateAndSanitizeHtml(modifiedMessage);
+      socket.send(validatedHtml);
+    } catch (error) {
+      console.log(error);
+      socket.send(error.toString());
+    }
+  });
+
+  // Handle client disconnect
+  socket.on("close", () => {
+    console.log("Client disconnected");
+  });
+});
+
 app.get("/", (req, res) => {
   res.send("Hello, WebSocket server is running!");
 });
