@@ -21,6 +21,9 @@ const wss = new WebSocket.Server({ server });
 
 const limit = 25;
 
+app.get("/", (req, res) => {
+  res.send("Hello, WebSocket server is running!");
+});
 wss.on("connection", (socket) => {
   console.log("A new client connected!");
 
