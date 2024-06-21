@@ -42,6 +42,7 @@ server.use("/uploads", cors(corsOptions), express.static("uploads"));
 server.use(express.static("public"));
 server.use(bodyParser.json());
 server.use(cookieParser());
+server.use(express.urlencoded({ extended: true }));
 server.use(cors(corsOptions));
 server.use("", commentRoutes);
 
