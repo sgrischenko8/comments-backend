@@ -10,39 +10,9 @@ const EventEmitter = require("events");
 const Jimp = require("jimp");
 const path = require("path");
 
-const { Server } = require("ws");
-
-const wss = new Server({ server });
-
 // const server = new WebSocket.Server({ port: 8080 });
 
 const limit = 25;
-
-wss.on("connection", (socket) => {
-  console.log("A new client connected!");
-
-  // Send a message to the client
-  socket.send("Welcome to the WebSocket server!");
-
-  // Handle incoming messages from the client
-  socket.on("message", async (message) => {
-    console.log(`Received message: ${message}`);
-
-    const modifiedMessage = message.toString("utf8");
-    try {
-      const validatedHtml = await validateAndSanitizeHtml(modifiedMessage);
-      socket.send(validatedHtml);
-    } catch (error) {
-      console.log(error);
-      socket.send(error.toString());
-    }
-  });
-
-  // Handle client disconnect
-  socket.on("close", () => {
-    console.log("Client disconnected");
-  });
-});
 
 const eventEmitter = new EventEmitter();
 
