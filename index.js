@@ -9,6 +9,7 @@ const sequelize = require("./models/index");
 // const helmet = require("helmet");
 const commentRoutes = require("./routes/commentRoutes");
 // const personRoutes = require("./routes/personRoutes");
+const validateAndSanitizeHtml = require("./validateAndSanitizeHtml");
 const http = require("http");
 const app = express();
 const { Server } = require("ws");
@@ -64,23 +65,7 @@ app.get("/", (req, res) => {
 
 const server = http.createServer(app);
 
-const INDEX = "/index.html";
-const PORT = process.env.PORT || 3000;
-sequelize
-  .sync()
-  .then(() => {
-    server
-      .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
-      .listen(PORT, () => {
-        console.log(`Server is running on http://localhost:${PORT}`);
-      });
-  })
-  .catch((error) => {
-    console.error("Unable to connect to the database:", error);
-  });
-
 const wss = new Server({ server });
-
 wss.on("connection", (socket) => {
   console.log("A new client connected!");
 
@@ -106,3 +91,16 @@ wss.on("connection", (socket) => {
     console.log("Client disconnected");
   });
 });
+
+// Sync database and start server
+const PORT = process.env.PORT || 3000;
+sequelize
+  .sync()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Unable to connect to the database:", error);
+  });
