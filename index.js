@@ -12,10 +12,6 @@ const commentRoutes = require("./routes/commentRoutes");
 const server = express();
 const { Server } = require("ws");
 
-server.get("/", (req, res) => {
-  res.send("Hello, WebSocket server is running!");
-});
-
 server.use((req, res, next) => {
   res.setHeader("Content-Disposition", `attachment`);
   next();
