@@ -11,6 +11,8 @@ const commentRoutes = require("./routes/commentRoutes");
 // const personRoutes = require("./routes/personRoutes");
 
 const app = express();
+const http = require("http");
+const server = http.createServer(app);
 
 app.use((req, res, next) => {
   res.setHeader("Content-Disposition", `attachment`);
@@ -54,7 +56,7 @@ const PORT = process.env.PORT || 3000;
 sequelize
   .sync()
   .then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
     });
   })
