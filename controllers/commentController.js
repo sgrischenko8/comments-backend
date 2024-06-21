@@ -10,17 +10,13 @@ const EventEmitter = require("events");
 const Jimp = require("jimp");
 const path = require("path");
 
-// const server = new WebSocket.Server({ port: 8080 });
-
 const limit = 25;
 
 const eventEmitter = new EventEmitter();
 
-// Этот слушатель реагирует на событие завершения обработки комментария
 eventEmitter.on("commentProcessed", () => {
   try {
     updateCacheWithNewComments();
-    // console.log("Cache updated with new comments after processing:");
   } catch (error) {
     console.error("Error updating cache with new comments:", error);
   }
@@ -39,7 +35,6 @@ async function addComment(req, res) {
       sortOrder = "DESC",
       page = 1,
     } = req.body;
-    console.log(req.cookies, "=======crypted captcha");
 
     if (!userName || !email || !text || !cryptedCaptcha) {
       return res.status(400).json({ error: "All fields are required" });
@@ -60,7 +55,7 @@ async function addComment(req, res) {
       if (req.files.image[0]) {
         image = req.files.image[0];
 
-        // Проверка и изменение размера изображения
+        // check image size and resize
         const imagePath = path.resolve(__dirname, "..", image.path);
         const loadedImage = await Jimp.read(imagePath);
         loadedImage.contain(
@@ -95,7 +90,6 @@ async function addComment(req, res) {
     if (req.files && req.files.file) {
       if (req.files.file[0]) {
         file = req.files.file[0];
-        console.log(file.path, "file path-------");
         if (
           file.mimetype === "text/plain" &&
           file.originalname.slice(-4).toUpperCase() === ".TXT"
@@ -125,14 +119,9 @@ async function addComment(req, res) {
       file: file ? file.path : "",
       parentId,
     });
-    console.log("after queue", Date.now() - date);
-    date = Date.now();
 
-    // Ожидаем завершения задания и получение данных нового комментария
+    // wait for saving doc and get new comment
     const result = await job.finished();
-
-    console.log("after job", Date.now() - date);
-    date = Date.now();
 
     const comments = await getCommentsWithChildren(
       sortBy,
@@ -140,16 +129,12 @@ async function addComment(req, res) {
       limit,
       (+page - 1) * limit
     );
-    console.log("after getNewCom", Date.now() - date);
-    date = Date.now();
 
     const totalItems = await Comment.count({
       where: {
         parentId: null,
       },
     });
-
-    console.log("after count", Date.now() - date);
 
     res.status(201).json({
       totalItems,
@@ -158,9 +143,7 @@ async function addComment(req, res) {
       comments,
     });
 
-    // Генерируем событие, что комментарий был успешно обработан
     eventEmitter.emit("commentProcessed", result);
-    console.log("after emit", Date.now() - date);
   } catch (error) {
     console.error("Error creating comment:", error);
     res.status(500).json({ error: "Internal Server Error" });

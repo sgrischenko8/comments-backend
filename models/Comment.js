@@ -1,4 +1,3 @@
-// models/Comment.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("./index");
 
@@ -24,12 +23,12 @@ const Comment = sequelize.define(
       allowNull: false,
     },
     image: {
-      type: DataTypes.STRING, // Хранение пути к файлу изображения
+      type: DataTypes.STRING,
       type: DataTypes.BLOB,
       allowNull: true,
     },
     file: {
-      type: DataTypes.STRING, // Хранение пути к текстовому файлу
+      type: DataTypes.STRING,
       type: DataTypes.BLOB,
       allowNull: true,
     },
@@ -37,11 +36,11 @@ const Comment = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: "Comments", // Модель, на которую ссылается внешний ключ
+        model: "Comments",
         key: "id",
       },
-      onDelete: "CASCADE", // При удалении родительского комментария удаляются и дочерние
-      onUpdate: "CASCADE", // При обновлении родительского комментария обновляются и дочерние
+      onDelete: "CASCADE",
+      onUpdate: "CASCADE",
     },
   },
   {
@@ -49,8 +48,8 @@ const Comment = sequelize.define(
     modelName: "Comment",
     tableName: "Comments",
     timestamps: true,
-    createdAt: "createdAt", // Имя поля для createdAt
-    updatedAt: false, // Отключаем поле updatedAt
+    createdAt: "createdAt",
+    updatedAt: false,
   }
 );
 

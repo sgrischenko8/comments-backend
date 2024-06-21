@@ -1,6 +1,6 @@
-// models/index.js
 const { Sequelize } = require("sequelize");
 
+// for local database
 // const sequelize = new Sequelize("mydatabase", "myuser", "mypassword", {
 //   host: "localhost",
 //   dialect: "mysql",

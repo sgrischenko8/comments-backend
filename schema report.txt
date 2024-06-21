@@ -1,0 +1,32 @@
++--------------------------------------------+
+| Catalog Diff Report                        |
++--------------------------------------------+
+Table `c387folsk9wfjqtp`.`Comments` was created
+  columns:
+  - id of type INT
+  - userName of type VARCHAR
+  - email of type VARCHAR
+  - text of type VARCHAR
+  - image of type VARCHAR
+  - file of type VARCHAR
+  - parentId of type INT
+  - createdAt of type DATETIME
+  __
+  indices:
+  - PRIMARY with columns: id
+  - idx_parentId with columns: parentId
+  - idx_createdAt with columns: createdAt
+  __
+  foreign keys:
+  - Comments_ibfk_1 with columns: parentId, referred table: Comments with columns: id
+    - action on update: CASCADE
+    - action on delete: CASCADE
+  __
+  attributes:
+  - engine: InnoDB
+  - next auto increment: 44
+  - default character set: utf8mb4
+  - default collate: utf8mb4_0900_ai_ci
+  __
+----------------------------------------------
+End of MySQL Workbench Report

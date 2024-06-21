@@ -1,14 +1,10 @@
 require("dotenv").config({ path: "./.env" });
 const express = require("express");
 const cors = require("cors");
-// const path = require("path");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const sequelize = require("./models/index");
-// const initializeDatabase = require("./models/initializeDatabase");
-// const helmet = require("helmet");
 const commentRoutes = require("./routes/commentRoutes");
-// const personRoutes = require("./routes/personRoutes");
 const validateAndSanitizeHtml = require("./validateAndSanitizeHtml");
 const http = require("http");
 const app = express();
@@ -36,15 +32,6 @@ const corsOptions = {
   credentials: true,
 };
 
-// const corsOptions = {
-//   origin:
-//     process.env.NODE_ENV === "development"
-//       ? "http://localhost:5173"
-//       : process.env.BASE_URL,
-//   credentials: true,
-// };
-
-// app.use(helmet());
 app.use("/uploads", cors(corsOptions), express.static("uploads"));
 app.use(express.static("public"));
 app.use(bodyParser.json());
@@ -65,10 +52,10 @@ app.get("/", (req, res) => {
 
 const server = http.createServer(app);
 
-const wss = new Server({ server });
+const wss = new Server(
+  (process.env.NODE_ENV = "production" ? { server } : { port: 8080 })
+);
 wss.on("connection", (socket) => {
-  console.log("A new client connected!");
-
   // Send a message to the client
   socket.send("Welcome to the WebSocket server!");
 
@@ -92,7 +79,6 @@ wss.on("connection", (socket) => {
   });
 });
 
-// Sync database and start server
 const PORT = process.env.PORT || 3000;
 sequelize
   .sync()

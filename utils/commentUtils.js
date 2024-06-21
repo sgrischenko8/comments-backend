@@ -1,4 +1,3 @@
-// utils/commentUtils.js
 const Comment = require("../models/Comment");
 
 async function getCommentsWithChildren(
@@ -8,7 +7,8 @@ async function getCommentsWithChildren(
   offset = 0
 ) {
   let date = Date.now();
-  // Запрос для получения родительских комментариев
+
+  // query by sql
   // const topCommentsQuery = `
   //   SELECT * FROM Comments
   //   WHERE parentId IS NULL
@@ -33,9 +33,7 @@ async function getCommentsWithChildren(
         },
       ],
     });
-    console.log("after top", Date.now() - date);
-    date = Date.now();
-    // Использование рекурсивного CTE для получения всех дочерних комментариев
+
     const allCommentsQuery = `
     WITH RECURSIVE CommentCTE AS (
       SELECT * FROM Comments WHERE parentId IS NULL
@@ -49,10 +47,7 @@ async function getCommentsWithChildren(
       model: Comment,
       mapToModel: true,
     });
-    console.log("after all comments", Date.now() - date, allComments.length);
-    date = Date.now();
 
-    // Построение дерева комментариев
     const buildCommentTree = (comments, parentId = null) => {
       return comments
         .filter((comment) => comment.parentId === parentId)
@@ -66,9 +61,7 @@ async function getCommentsWithChildren(
       const children = buildCommentTree(allComments, comment.id);
       return { ...comment.toJSON(), children };
     });
-    console.log("after tree", Date.now() - date);
-    date = Date.now();
-    // console.log(commentTree, "=======CACHE");
+
     return commentTree;
   } catch (error) {
     console.log(error);
