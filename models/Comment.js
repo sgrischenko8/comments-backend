@@ -24,10 +24,12 @@ const Comment = sequelize.define(
       allowNull: false,
     },
     image: {
+      type: DataTypes.STRING, // Хранение пути к файлу изображения
       type: DataTypes.BLOB,
       allowNull: true,
     },
     file: {
+      type: DataTypes.STRING, // Хранение пути к текстовому файлу
       type: DataTypes.BLOB,
       allowNull: true,
     },
