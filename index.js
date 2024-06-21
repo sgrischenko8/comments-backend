@@ -9,15 +9,21 @@ const sequelize = require("./models/index");
 // const helmet = require("helmet");
 const commentRoutes = require("./routes/commentRoutes");
 // const personRoutes = require("./routes/personRoutes");
-const server = express();
+const http = require("http");
+const app = express();
 const { Server } = require("ws");
 
-server.use((req, res, next) => {
+app.use((req, res, next) => {
   res.setHeader("Content-Disposition", `attachment`);
   next();
 });
 
-const allowedOrigins = ["http://localhost:5173", process.env.BASE_URL];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5000",
+  ,
+  process.env.BASE_URL,
+];
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -38,18 +44,25 @@ const corsOptions = {
 // };
 
 // app.use(helmet());
-server.use("/uploads", cors(corsOptions), express.static("uploads"));
-server.use(express.static("public"));
-server.use(bodyParser.json());
-server.use(cookieParser());
-server.use(express.urlencoded({ extended: true }));
-server.use(cors(corsOptions));
-server.use("", commentRoutes);
+app.use("/uploads", cors(corsOptions), express.static("uploads"));
+app.use(express.static("public"));
+app.use(bodyParser.json());
+app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors(corsOptions));
+app.use("", commentRoutes);
 
-server.use((err, req, res, next) => {
+app.use((err, req, res, next) => {
   console.log(err);
   res.status(err.status || 500).json({ message: err.message });
 });
+
+// Serve index.html for the root route
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+const server = http.createServer(app);
 
 const INDEX = "/index.html";
 const PORT = process.env.PORT || 3000;
