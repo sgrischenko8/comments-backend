@@ -10,20 +10,14 @@ const EventEmitter = require("events");
 const Jimp = require("jimp");
 const path = require("path");
 
-const WebSocket = require("ws");
+const { Server } = require("ws");
 
-const express = require("express");
-const app = express();
-const http = require("http");
+const wss = new Server({ server });
+
 // const server = new WebSocket.Server({ port: 8080 });
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
 
 const limit = 25;
 
-app.get("/", (req, res) => {
-  res.send("Hello, WebSocket server is running!");
-});
 wss.on("connection", (socket) => {
   console.log("A new client connected!");
 

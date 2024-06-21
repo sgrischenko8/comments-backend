@@ -24,7 +24,6 @@
     "express": "^4.19.2",
     "helmet": "^7.1.0",
     "html-validator": "^6.0.1",
-    "http": "^0.0.1-security",
     "jimp": "^0.22.12",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",

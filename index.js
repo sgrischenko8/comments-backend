@@ -11,8 +11,9 @@ const commentRoutes = require("./routes/commentRoutes");
 // const personRoutes = require("./routes/personRoutes");
 
 const app = express();
-const http = require("http");
-const server = http.createServer(app);
+app.get("/", (req, res) => {
+  res.send("Hello, WebSocket server is running!");
+});
 
 app.use((req, res, next) => {
   res.setHeader("Content-Disposition", `attachment`);
@@ -52,13 +53,16 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message });
 });
 
+const INDEX = "/index.html";
 const PORT = process.env.PORT || 3000;
 sequelize
   .sync()
   .then(() => {
-    server.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
-    });
+    app
+      .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
+      .listen(PORT, () => {
+        console.log(`Server is running on http://localhost:${PORT}`);
+      });
   })
   .catch((error) => {
     console.error("Unable to connect to the database:", error);
