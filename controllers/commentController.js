@@ -12,11 +12,14 @@ const path = require("path");
 
 const WebSocket = require("ws");
 
-const server = new WebSocket.Server({ port: 8080 });
+const http = require("http");
+// const server = new WebSocket.Server({ port: 8080 });
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
 const limit = 25;
 
-server.on("connection", (socket) => {
+wss.on("connection", (socket) => {
   console.log("A new client connected!");
 
   // Send a message to the client
