@@ -9,13 +9,14 @@ const sequelize = require("./models/index");
 // const helmet = require("helmet");
 const commentRoutes = require("./routes/commentRoutes");
 // const personRoutes = require("./routes/personRoutes");
-const app = express();
+const server = express();
+const { Server } = require("ws");
 
-app.get("/", (req, res) => {
+server.get("/", (req, res) => {
   res.send("Hello, WebSocket server is running!");
 });
 
-app.use((req, res, next) => {
+server.use((req, res, next) => {
   res.setHeader("Content-Disposition", `attachment`);
   next();
 });
@@ -41,14 +42,14 @@ const corsOptions = {
 // };
 
 // app.use(helmet());
-app.use("/uploads", cors(corsOptions), express.static("uploads"));
-app.use(express.static("public"));
-app.use(bodyParser.json());
-app.use(cookieParser());
-app.use(cors(corsOptions));
-app.use("", commentRoutes);
+server.use("/uploads", cors(corsOptions), express.static("uploads"));
+server.use(express.static("public"));
+server.use(bodyParser.json());
+server.use(cookieParser());
+server.use(cors(corsOptions));
+server.use("", commentRoutes);
 
-app.use((err, req, res, next) => {
+server.use((err, req, res, next) => {
   console.log(err);
   res.status(err.status || 500).json({ message: err.message });
 });
@@ -58,7 +59,7 @@ const PORT = process.env.PORT || 3000;
 sequelize
   .sync()
   .then(() => {
-    app
+    server
       .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
       .listen(PORT, () => {
         console.log(`Server is running on http://localhost:${PORT}`);
@@ -68,9 +69,7 @@ sequelize
     console.error("Unable to connect to the database:", error);
   });
 
-const { Server } = require("ws");
-
-const wss = new Server({ app });
+const wss = new Server({ server });
 
 wss.on("connection", (socket) => {
   console.log("A new client connected!");
