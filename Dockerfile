@@ -1,20 +1,15 @@
-# Используем базовый образ Node.js с нужной версией
-FROM node:14
+FROM node:alpine
 
-# Устанавливаем рабочую директорию в контейнере
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Копируем package.json и package-lock.json (если есть) для установки зависимостей
 COPY package*.json ./
 
-# Устанавливаем зависимости
 RUN npm install
 
-# Копируем все файлы проекта в рабочую директорию контейнера
+RUN npm install -g nodemon
+
 COPY . .
 
-# Определяем порт, который будет открыт в контейнере
-EXPOSE 3000
+EXPOSE 3000 
 
-# Команда для запуска приложения
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]

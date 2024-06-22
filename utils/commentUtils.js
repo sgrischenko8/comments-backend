@@ -52,14 +52,14 @@ async function getCommentsWithChildren(
       return comments
         .filter((comment) => comment.parentId === parentId)
         .map((comment) => {
-          const children = buildCommentTree(comments, comment.id);
-          return { ...comment.toJSON(), children };
+          const replies = buildCommentTree(comments, comment.id);
+          return { ...comment.toJSON(), replies };
         });
     };
 
     const commentTree = topComments.map((comment) => {
-      const children = buildCommentTree(allComments, comment.id);
-      return { ...comment.toJSON(), children };
+      const replies = buildCommentTree(allComments, comment.id);
+      return { ...comment.toJSON(), replies };
     });
 
     return commentTree;

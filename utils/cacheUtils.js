@@ -1,4 +1,3 @@
-// utils/cacheUtils.js
 const NodeCache = require("node-cache");
 const { getCommentsWithChildren } = require("./commentUtils");
 
@@ -8,8 +7,6 @@ async function updateCacheWithNewComments(s) {
   try {
     const commentsWithChildren = await getCommentsWithChildren();
     cache.set("latestComments", commentsWithChildren);
-
-    // console.log("Cache updated with latest comments:", commentsWithChildren);
   } catch (error) {
     console.error("Error updating cache with latest comments:", error);
   }

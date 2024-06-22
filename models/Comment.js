@@ -24,12 +24,10 @@ const Comment = sequelize.define(
     },
     image: {
       type: DataTypes.STRING,
-      type: DataTypes.BLOB,
       allowNull: true,
     },
     file: {
       type: DataTypes.STRING,
-      type: DataTypes.BLOB,
       allowNull: true,
     },
     parentId: {
@@ -39,7 +37,6 @@ const Comment = sequelize.define(
         model: "Comments",
         key: "id",
       },
-      onDelete: "CASCADE",
       onUpdate: "CASCADE",
     },
   },

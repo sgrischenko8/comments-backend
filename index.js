@@ -4,6 +4,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const sequelize = require("./models/index");
+const path = require("path");
 const commentRoutes = require("./routes/commentRoutes");
 const validateAndSanitizeHtml = require("./validateAndSanitizeHtml");
 const http = require("http");
@@ -52,12 +53,14 @@ app.get("/", (req, res) => {
 
 const server = http.createServer(app);
 
-const wss = new Server(
-  (process.env.NODE_ENV = "production" ? { server } : { port: 8080 })
-);
+const webSocketOptions =
+  process.env.NODE_ENV === "production" ? { server } : { port: 8080 };
+
+const wss = new Server(webSocketOptions);
+
 wss.on("connection", (socket) => {
   // Send a message to the client
-  socket.send("Welcome to the WebSocket server!");
+  socket.send("Wait for it...");
 
   // Handle incoming messages from the client
   socket.on("message", async (message) => {
