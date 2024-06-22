@@ -1,5 +1,7 @@
 const express = require("express");
 const upload = require("../middlewares/multerConfig");
+const checkBody = require("../middlewares/checkBody");
+
 const {
   addComment,
   getComments,
@@ -8,7 +10,7 @@ const {
 
 const router = express.Router();
 
-router.post("/comments", upload, addComment);
+router.post("/comments", upload, checkBody, addComment);
 router.get("/comments", getComments);
 router.get("/captcha", getCaptcha);
 
